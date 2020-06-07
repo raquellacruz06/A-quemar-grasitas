@@ -125,7 +125,7 @@ Gimnasta "Francisco" 40.0 120.0 6.0 ­­­ --tonifica 5 (50 / 10)
 tonificar :: (Float-> Float) -> Gimnasta -> Gimnasta
 tonificar funcion gimnasta = gimnasta {tonificacion = (funcion.tonificacion) gimnasta }
 
-pesas :: Float -> Float-> Gimnasta -> Gimnasta
+pesas :: Float -> Ejercicio
 pesas pesoPesa tiempo gimnasta
     |tiempo > 10 =  tonificar (+pesoPesa/10) gimnasta
     |otherwise = gimnasta
@@ -134,7 +134,7 @@ pesas pesoPesa tiempo gimnasta
 > colina 5 40 pancho 
 Gimnasta "Francisco" 40.0 117.3 1.0  --quema 400 calorías (2*40*5) -}
 
-colina :: Float -> Float -> Gimnasta -> Gimnasta
+colina :: Float -> Ejercicio
 colina minutos inclinacion gimnasta = quemarCalorias (2*minutos*inclinacion) gimnasta
 
 {-La montaña son 2 colinas sucesivas (cada una con la mitad de duración respecto de los minutos totales indicados),
@@ -147,7 +147,7 @@ Gimnasta "Francisco" 40.0 116.5 2.0
 -- quema 520 calorias (2*20*5 por la 1ra, 2*20*8 por la 2da) y se tonifica 1
 -}
 
-montaña :: Float -> Float -> Gimnasta -> Gimnasta
+montaña :: Float -> Ejercicio
 montaña minutos inclinacion  = colina (minutos/2) inclinacion . colina (minutos/2) (inclinacion * 3). tonificar (+1) 
 
 {-Rutina de ejercicios:
@@ -161,7 +161,9 @@ Dada una rutina y un gimnasta, obtener el resumen de rutina que es una tupla con
 los kilos perdidos y la tonificación ganada por dicho gimnasta al realizarla.
 -}
 
-
+data Rutina = UnaRutina {nombreRutina :: String,
+                        duracion :: Float,
+                        ejercicios :: [Ejercicio]} deriving Show
 
 
 
