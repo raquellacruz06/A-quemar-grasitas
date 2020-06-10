@@ -49,12 +49,17 @@ tonificado :: Gimnasta -> Float
 tonificado gimnasta = cumple (tonificacion 5 gimnasta)-}
 
 -----Otra opcion pero con más repeticion de lógica
+
+estaSaludable :: Gimnasta -> Bool
+estaSaludable gimnasta = (not.estaObeso) gimnasta && tonificado gimnasta
+
 estaObeso :: Gimnasta -> Bool
 estaObeso gimnasta = peso gimnasta > 100
 
 tonificado :: Gimnasta -> Bool
 tonificado gimnasta = tonificacion gimnasta > 5
-estaSaludable gimnasta = (not.estaObeso) gimnasta && tonificado gimnasta
+
+
 
 ----punto 2
 {-Hacer que el gimnasta queme una cantidad de calorías, lo que produce que baje de peso.
@@ -71,20 +76,22 @@ Gimnasta "Andy" 22.0 79.8 6.0-}
 
 quemarCalorias :: Float -> Gimnasta -> Gimnasta
 quemarCalorias calorias gimnasta 
-    |estaObeso gimnasta =  cambiarPeso (disminuirPeso (calorias / 150)) gimnasta
-    |edad gimnasta > 30 && calorias > 200 = cambiarPeso (disminuirPeso 1) gimnasta
-    |otherwise = cambiarPeso (disminuirPeso (calorias / (peso gimnasta) * (edad gimnasta))) gimnasta
+    |estaObeso gimnasta =  disminuirPeso (calorias/150) gimnasta--- (+(-(calorias / 150))) cambiarPeso (+(-(calorias/150)))
+    |edad gimnasta > 30 && calorias > 200 = disminuirPeso 1  gimnasta --(+ (-1))
+    |otherwise = disminuirPeso (calorias/ peso gimnasta * edad gimnasta)  gimnasta ----(+(-(calorias / (peso gimnasta)) * (edad gimnasta)))
+
+disminuirPeso :: Float-> Gimnasta -> Gimnasta
+disminuirPeso kilos gimnasta  = cambiarPeso (+(-kilos)) gimnasta
 
 cambiarPeso :: (Float-> Float ) -> Gimnasta -> Gimnasta
 cambiarPeso funcion gimnasta = gimnasta {peso = (funcion.peso) gimnasta}
 
-disminuirPeso :: Float -> Float -> Float
-disminuirPeso kilos peso  = peso - kilos
 
-
- --cambiarPeso :: (Float -> Gimnasta -> Float) -> Float-> Gimnasta -> Gimnasta
+--disminuirPeso :: Float -> Float -> Float ---No es necesaria si ya tenemos la abstracción
+--disminuirPeso kilos peso  = peso - kilos
+--cambiarPeso :: (Float -> Gimnasta -> Float) -> Float-> Gimnasta -> Gimnasta
  --cambiarPeso funcion caloriasQuemadas gimnasta = gimnasta {peso = peso gimnasta - (funcion caloriasQuemadas gimnasta)    
-     {-bajarPeso::  Int -> Gimnasta -> Float
+{-bajarPeso::  Int -> Gimnasta -> Float
 bajarPeso calorias gimnasta = peso gimnasta - calorias / (_)
     p-}
 
@@ -104,12 +111,11 @@ siendo 14 la velocidad máxima alcanzada por los 8 incrementos durante los 40 mi
 -}
 
 cinta :: Float -> Float -> Float
-cinta velocidad tiempo = velocidad * tiempo
+cinta velocidadPromedio tiempo = velocidadPromedio * tiempo
 
 --caminataEnCinta :: Float -> Gimnasta -> Gimnasta
 caminataEnCinta :: Ejercicio
 caminataEnCinta tiempo gimnasta = quemarCalorias (cinta 5 tiempo) gimnasta
-
 
 entrenamientoEnCinta :: Ejercicio
 entrenamientoEnCinta tiempo gimnasta = quemarCalorias (cinta (velocidad tiempo) tiempo ) gimnasta
@@ -126,7 +132,7 @@ tonificar :: (Float-> Float) -> Gimnasta -> Gimnasta
 tonificar funcion gimnasta = gimnasta {tonificacion = (funcion.tonificacion) gimnasta }
 
 pesas :: Float -> Ejercicio
-pesas pesoPesa tiempo gimnasta
+pesas pesoPesa tiempo   gimnasta
     |tiempo > 10 =  tonificar (+pesoPesa/10) gimnasta
     |otherwise = gimnasta
 
@@ -135,7 +141,7 @@ pesas pesoPesa tiempo gimnasta
 Gimnasta "Francisco" 40.0 117.3 1.0  --quema 400 calorías (2*40*5) -}
 
 colina :: Float -> Ejercicio
-colina minutos inclinacion gimnasta = quemarCalorias (2*minutos*inclinacion) gimnasta
+colina inclinacion minutos  gimnasta = quemarCalorias (2*minutos*inclinacion) gimnasta
 
 {-La montaña son 2 colinas sucesivas (cada una con la mitad de duración respecto de los minutos totales indicados),
  donde la segunda colina tiene una inclinación de 3 más que la inclinación inicial elegida. 
@@ -148,8 +154,8 @@ Gimnasta "Francisco" 40.0 116.5 2.0
 -}
 
 montaña :: Float -> Ejercicio
-montaña minutos inclinacion  = colina (minutos/2) inclinacion . colina (minutos/2) (inclinacion * 3). tonificar (+1) 
-
+montaña inclinacion minutos   = colina inclinacion minutosCadaColina  . colina (inclinacion * 3) minutosCadaColina . tonificar (+1) 
+    where minutosCadaColina = minutos/2
 {-Rutina de ejercicios:
 Dada una Rutina (es un Data con un nombre, duración total y lista de ejercicios específicos) y un gimnasta, 
 obtener al gimnasta luego de realizar la rutina. 
@@ -164,6 +170,72 @@ los kilos perdidos y la tonificación ganada por dicho gimnasta al realizarla.
 data Rutina = UnaRutina {nombreRutina :: String,
                         duracion :: Float,
                         ejercicios :: [Ejercicio]} deriving Show
+
+----Solucion con fold
+realizarRutina :: Rutina -> Gimnasta -> Gimnasta
+realizarRutina rutina gimnasta = foldl (hacerEjercicio duracionCadaEjercicio) gimnasta (ejercicios rutina)
+    where duracionCadaEjercicio = duracion rutina  / (fromIntegral.length.ejercicios) rutina
+    
+hacerEjercicio :: Float -> Gimnasta -> Ejercicio ->  Gimnasta
+hacerEjercicio tiempo gimnasta ejercicio = ejercicio tiempo gimnasta
+
+----Solucion con recursividad 
+realizarRutina2 :: Rutina -> Gimnasta -> Gimnasta
+realizarRutina2 rutina gimnasta = hacerTodosLosEjercicios tiempo (ejercicios rutina) gimnasta
+    where tiempo = duracion rutina  / (fromIntegral.length.ejercicios) rutina
+   -- where listaEjercicios2 = ejercicios rutina
+
+hacerTodosLosEjercicios :: Float -> [Ejercicio] -> Gimnasta -> Gimnasta
+hacerTodosLosEjercicios _ [] gimnasta = gimnasta
+hacerTodosLosEjercicios tiempo (ejercicio1:masEjercicios) gimnasta = hacerTodosLosEjercicios tiempo masEjercicios (ejercicio1 tiempo gimnasta)
+    
+    ---versión anterior
+{-minutosPorEjercicio :: Rutina -> Float
+minutosPorEjercicio rutina = (duracion rutina) / fromIntegral (length (ejercicios rutina))
+
+ejerciciosConTiempo :: Rutina -> [( Gimnasta ->  Gimnasta)]
+ejerciciosConTiempo rutina = map minutosPorEjercicio rutina (ejercicios rutina)
+
+aplicarEjercicio :: Gimnasta -> ( Gimnasta ->  Gimnasta)-> Gimnasta
+aplicarEjercicio gimnasta ejercicio  = ejercicio gimnasta
+
+aplicarRutina :: [Ejercicio]-> Gimnasta -> Gimnasta
+aplicarRutina listaEjercicios gimnasta = foldl aplicarEjercicio gimnasta listaEjercicios-}
+
+-----con recursividad
+--aplicarRutina [] _ gimnasta = gimnasta
+--aplicarRutina listaEjercicios minutosPorEjercicio gimnasta = ($) (head listaEjercicios) gimnasta : 
+
+--Dada una rutina y un gimnasta, obtener el resumen de rutina que es una tupla con el nombre de la misma, 
+--los kilos perdidos y la tonificación ganada por dicho gimnasta al realizarla.
+
+type Resumen = (String, Float, Float)
+obtenerResumen :: Rutina -> Gimnasta -> Resumen
+obtenerResumen rutina gimnasta = (nombreRutina rutina, kilosPerdidos rutina gimnasta, tonificacionGanada rutina gimnasta)
+
+kilosPerdidos :: Rutina -> Gimnasta -> Float
+kilosPerdidos rutina gimnasta = peso gimnasta - (peso.realizarRutina rutina) gimnasta
+
+tonificacionGanada :: Rutina -> Gimnasta -> Float
+tonificacionGanada rutina gimnasta = (tonificacion.realizarRutina rutina) gimnasta - tonificacion gimnasta
+
+
+--Dada una lista de rutinas, obtener un resumen 
+--de todas las que (individualmente) pueden llevar a un gimnasta dado a estar saludable. 
+
+resumenRutinas :: [Rutina] -> Gimnasta -> [Resumen]
+resumenRutinas listaRutinas gimnasta = map (flip obtenerResumen gimnasta) (rutinasQueLoDejanSaludable gimnasta listaRutinas)
+
+rutinasQueLoDejanSaludable :: Gimnasta -> [Rutina] -> [Rutina]
+rutinasQueLoDejanSaludable gimnasta rutinas = filter (estaSaludable.flip realizarRutina gimnasta ) rutinas
+
+--resultadosDeCadaRutina :: Gimnasta -> [Rutina]-> [Gimnasta]
+--resultadosDeCadaRutina gimnasta rutinas = map (flip realizarRutina gimnasta) rutinas
+
+
+
+
+
 
 
 
